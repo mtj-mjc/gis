@@ -3,12 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./server.js"
+    "start": "node ./server.js",
+    "dev": "nodemon ./server.js"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
     "debug": "~4.1.1",
     "express": "^4.17.1",
     "pg": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
   }
 }
