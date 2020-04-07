@@ -7,29 +7,49 @@ var conString = "postgres://postgres:peder@192.168.99.101:5432/gis"; // Your Dat
 
 // Set up your database query to display GeoJSON
 // var coffee_query = "SELECT row_to_json(fc) FROM ( SELECT 'FeatureCollection' As type, array_to_json(array_agg(f)) As features FROM (SELECT 'Feature' As type, ST_AsGeoJSON(lg.geom)::json As geometry, row_to_json((id, name)) As properties FROM cambridge_coffee_shops As lg) As f) As fc";
-var bezirk_query = `SELECT json_build_object('type', 'FeatureCollection', 
-                                            'features', json_agg(ST_AsGeoJSON(t.*)::json)) 
-                    FROM bezirk_poly as t;`
+var adminUnit_query = `SELECT json_build_object('type', 'FeatureCollection', 
+                                            'features', json_agg(ST_AsGeoJSON(b.*)::json)) 
+                    FROM bezirk_poly as b;`
+
+var camping_query = `SELECT json_build_object('type', 'FeatureCollection', 
+                                              'features', json_agg(ST_AsGeoJSON(cp.*)::json)) 
+                    FROM camping_points as cp;`
+
+var campingPerSquarePerAdminUnit_query = `SELECT b.id, count(cp.geom) AS total 
+                                            FROM bezirk_poly as b LEFT JOIN camping_points as cp 
+                                            ON st_contains(b.geom,cp.geom) 
+                                            GROUP BY b.id;`
+
 
 
 module.exports = router;
 
 /* GET Postgres JSON data */
-router.get('/data', function (req, res) {
+router.get('/adminunit', function (req, res) {
     var client = new pg.Client(conString);
     client.connect();
 
-    var query = client.query(bezirk_query);
-    query.then((response) => res.send(response.rows[0]));
+    var query = client.query(adminUnit_query);
+    query.then((response) => res.send(response.rows[0].json_build_object));
     // query.then((response) => console.log(response.rows[0]));
-    
-    // query.on("row", function (row, result) {
-    //     result.addRow(row);
-    // });
-    // query.on("end", function (result) {
-    //     res.send(result.rows[0].row_to_json);
-    //     res.end();
-    // });
+});
+
+router.get('/camping', function (req, res) {
+    var client = new pg.Client(conString);
+    client.connect();
+
+    var query = client.query(camping_query);
+    query.then((response) => res.send(response.rows[0].json_build_object));
+    // query.then((response) => console.log(response.rows[0]));
+});
+
+router.get('/camping-per-square-per-adminunit', function (req, res) {
+    var client = new pg.Client(conString);
+    client.connect();
+
+    var query = client.query(campingPerSquarePerAdminUnit_query);
+    query.then((response) => res.send(response.rows));
+    // query.then((response) => console.log(response.rows));
 });
 
 /* GET the map page */
