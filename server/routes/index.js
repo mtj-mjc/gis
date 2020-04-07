@@ -6,33 +6,32 @@ var pg = require("pg"); // require Postgres module
 var conString = "postgres://postgres:peder@192.168.99.101:5432/gis"; // Your Database Connection
 
 // Set up your database query to display GeoJSON
-// var coffee_query = "SELECT row_to_json(fc) FROM ( SELECT 'FeatureCollection' As type, array_to_json(array_agg(f)) As features FROM (SELECT 'Feature' As type, ST_AsGeoJSON(lg.geom)::json As geometry, row_to_json((id, name)) As properties FROM cambridge_coffee_shops As lg) As f) As fc";
-var adminUnit_query = `SELECT json_build_object('type', 'FeatureCollection', 
-                                            'features', json_agg(ST_AsGeoJSON(b.*)::json)) 
-                    FROM bezirk_poly as b;`
-
 var camping_query = `SELECT json_build_object('type', 'FeatureCollection', 
                                               'features', json_agg(ST_AsGeoJSON(cp.*)::json)) 
                     FROM camping_points as cp;`
 
-var campingPerSquarePerAdminUnit_query = `SELECT b.id, count(cp.geom) AS total 
-                                            FROM bezirk_poly as b LEFT JOIN camping_points as cp 
+var campingPerSquarePerAdminUnit_query = `SELECT json_build_object('type', 'FeatureCollection', 
+                                                                    'features', json_agg(json_build_object(
+                                                                        'type', 'Feature',
+                                                                        'geometry', ST_AsGeoJSON(sub.geom)::json, 
+                                                                        'properties', json_build_object('name', sub.name, 'nbrOfCampings', sub.nbrOfCampings))))
+                                            FROM (SELECT b.name as name, count(cp.geom) as nbrOfCampings, b.geom as geom FROM bezirk_poly as b LEFT JOIN camping_points as cp 
                                             ON st_contains(b.geom,cp.geom) 
-                                            GROUP BY b.id;`
+                                            GROUP BY b.name, b.geom) as sub;`
 
-
+var nbrOfBordersPerLake_query = `SELECT json_build_object('type', 'FeatureCollection', 
+                                'features', json_agg(json_build_object(
+                                    'type', 'Feature', 
+                                    'geometry', ST_AsGeoJSON(sub.geom)::json,
+                                    'properties', json_build_object('name', sub.name, 'nbrOfBorders', sub.nbrOfBorders)))) 
+                                FROM (SELECT s.id1 as name, count(b.name) as nbrOfBorders, s.geom as geom 
+                                FROM bezirk_poly as b INNER JOIN seen_poly as s
+                                ON st_touches(b.geom, s.geom)
+                                GROUP BY s.id1, s.geom) as sub`;
 
 module.exports = router;
 
 /* GET Postgres JSON data */
-router.get('/adminunit', function (req, res) {
-    var client = new pg.Client(conString);
-    client.connect();
-
-    var query = client.query(adminUnit_query);
-    query.then((response) => res.send(response.rows[0].json_build_object));
-    // query.then((response) => console.log(response.rows[0]));
-});
 
 router.get('/camping', function (req, res) {
     var client = new pg.Client(conString);
@@ -48,7 +47,16 @@ router.get('/camping-per-square-per-adminunit', function (req, res) {
     client.connect();
 
     var query = client.query(campingPerSquarePerAdminUnit_query);
-    query.then((response) => res.send(response.rows));
+    query.then((response) => res.send(response.rows[0].json_build_object));
+    // query.then((response) => console.log(response.rows));
+});
+
+router.get('/nbr-of-borders-per-lake', function (req, res) {
+    var client = new pg.Client(conString);
+    client.connect();
+
+    var query = client.query(nbrOfBordersPerLake_query);
+    query.then((response) => res.send(response.rows[0].json_build_object));
     // query.then((response) => console.log(response.rows));
 });
 

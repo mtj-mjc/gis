@@ -21,7 +21,10 @@
 
         <md-list>
           <md-list-item>
-            <md-switch v-model="showAdminUnit" class="md-primary" v-on:change="showAdminUnitTest(showAdminUnit)" >Colorize Administrative Units</md-switch>
+            <md-switch v-model="isVisible" class="md-primary" v-on:change="showAdminUnit(isVisible)" >Colorize Administrative Units</md-switch>
+          </md-list-item>
+          <md-list-item>
+            <md-switch v-model="isHighlighted" class="md-primary" v-on:change="highlightLakes(isHighlighted)" >Highlight Lakes with more than 4 Borders</md-switch>
           </md-list-item>
         </md-list>
       </md-app-drawer>
@@ -40,17 +43,25 @@
         name: 'PersistentFull',
         data: () => ({
             menuVisible: false,
-            showAdminUnit: false
+            isVisible: false,
+            isHighlighted: false
         }),
         methods: {
             toggleMenu () {
                 this.menuVisible = !this.menuVisible
             },
-            showAdminUnitTest (show){
+            showAdminUnit (show){
                 if(show){
                     this.$refs.map.showAdminUnit();
                 }else{
                     this.$refs.map.removeAdminUnit();
+                }
+            },
+            highlightLakes (show){
+                if(show){
+                    this.$refs.map.highlightLakes();
+                }else{
+                    this.$refs.map.removehighlightLakes();
                 }
             }
         },
@@ -69,7 +80,7 @@
 
     // Demo purposes only
     .md-drawer {
-        width: 300px;
+        width: 350px;
         max-width: calc(100vw - 125px);
     }
 
