@@ -52,9 +52,9 @@
             },
             showAdminUnit (show){
                 if(show){
-                    this.$refs.map.showAdminUnit();
+                    this.$refs.map.colorizeAdminUnit();
                 }else{
-                    this.$refs.map.removeAdminUnit();
+                    this.$refs.map.removeColorizationOfAdminUnit();
                 }
             },
             highlightLakes (show){

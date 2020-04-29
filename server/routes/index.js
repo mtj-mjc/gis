@@ -20,14 +20,14 @@ var campingPerSquarePerAdminUnit_query = `SELECT json_build_object('type', 'Feat
                                             GROUP BY b.name, b.geom) as sub;`
 
 var nbrOfBordersPerLake_query = `SELECT json_build_object('type', 'FeatureCollection', 
-                                'features', json_agg(json_build_object(
-                                    'type', 'Feature', 
-                                    'geometry', ST_AsGeoJSON(sub.geom)::json,
-                                    'properties', json_build_object('name', sub.name, 'nbrOfBorders', sub.nbrOfBorders)))) 
+                                                        'features', json_agg(json_build_object(
+                                                            'type', 'Feature', 
+                                                            'geometry', ST_AsGeoJSON(sub.geom)::json,
+                                                            'properties', json_build_object('name', sub.name, 'nbrOfBorders', sub.nbrOfBorders)))) 
                                 FROM (SELECT s.id1 as name, count(b.name) as nbrOfBorders, s.geom as geom 
-                                FROM bezirk_poly as b INNER JOIN seen_poly as s
-                                ON st_touches(b.geom, s.geom)
-                                GROUP BY s.id1, s.geom) as sub`;
+                                    FROM bezirk_poly as b INNER JOIN seen_poly as s
+                                    ON st_touches(b.geom, s.geom)
+                                    GROUP BY s.id1, s.geom) as sub`;
 
 module.exports = router;
 
