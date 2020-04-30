@@ -14,10 +14,10 @@ var campingPerSquarePerAdminUnit_query = `SELECT json_build_object('type', 'Feat
                                                                     'features', json_agg(json_build_object(
                                                                         'type', 'Feature',
                                                                         'geometry', ST_AsGeoJSON(sub.geom)::json, 
-                                                                        'properties', json_build_object('name', sub.name, 'nbrOfCampings', sub.nbrOfCampings))))
-                                            FROM (SELECT b.name as name, count(cp.geom) as nbrOfCampings, b.geom as geom FROM bezirk_poly as b LEFT JOIN camping_points as cp 
+                                                                        'properties', json_build_object('id', sub.id, 'name', sub.name, 'nbrOfCampings', sub.nbrOfCampings))))
+                                            FROM (SELECT b.id as id, b.name as name, count(cp.geom) as nbrOfCampings, b.geom as geom FROM bezirk_poly as b LEFT JOIN camping_points as cp 
                                             ON st_contains(b.geom,cp.geom) 
-                                            GROUP BY b.name, b.geom) as sub;`
+                                            GROUP BY b.id, b.geom) as sub;`
 
 var nbrOfBordersPerLake_query = `SELECT json_build_object('type', 'FeatureCollection', 
                                                         'features', json_agg(json_build_object(
@@ -28,6 +28,7 @@ var nbrOfBordersPerLake_query = `SELECT json_build_object('type', 'FeatureCollec
                                     FROM bezirk_poly as b INNER JOIN seen_poly as s
                                     ON st_touches(b.geom, s.geom)
                                     GROUP BY s.id1, s.geom) as sub`;
+
 
 module.exports = router;
 
@@ -60,6 +61,22 @@ router.get('/nbr-of-borders-per-lake', function (req, res) {
     // query.then((response) => console.log(response.rows));
 });
 
+router.get('/intersectionModel', function (req, res) {
+    var id1 = req.query.id1;
+    var id2 = req.query.id2;
+    var intersectionModel_query = `SELECT ST_Relate(a.geom, b.geom)  FROM 
+                                (SELECT id, geom FROM bezirk_poly WHERE id = ${id1}) as a,
+                                (SELECT id, geom FROM bezirk_poly WHERE id = ${id2}) as b;`;
+    console.log(req.query.id1)
+    console.log(req.query.id2)
+    var client = new pg.Client(conString);
+    client.connect();
+
+    var query = client.query(intersectionModel_query);
+    query.then((response) => res.send(response.rows[0]));
+    // query.then((response) => console.log(response.rows));
+});
+
 /* GET the map page */
 router.get('/map', function(req, res) {
     var client = new pg.Client(conString);
@@ -78,7 +95,7 @@ router.get('/map', function(req, res) {
 });
 
 /* GET the filtered page */
-router.get('/filter*', function (req, res) {
+router.get('/filter', function (req, res) {
     var name = req.query.name;
     if (name.indexOf("--") > -1 || name.indexOf("'") > -1 || name.indexOf(";") > -1 || name.indexOf("/*") > -1 || name.indexOf("xp_") > -1){
         console.log("Bad request detected");

@@ -26,6 +26,15 @@
           <md-list-item>
             <md-switch v-model="isHighlighted" class="md-primary" v-on:change="highlightLakes(isHighlighted)" >Highlight Lakes with more than 4 Borders</md-switch>
           </md-list-item>
+          <md-list-item>
+            <intersectionmodel></intersectionmodel>
+          </md-list-item>
+          <md-list-item>
+            <campingplace></campingplace>
+          </md-list-item>
+          <md-list-item>
+            <trainstation></trainstation>
+          </md-list-item>
         </md-list>
       </md-app-drawer>
 
@@ -38,6 +47,9 @@
 
 <script>
     import Map from './Map.vue'
+    import IntersectionModel from './IntersectionModel.vue'
+    import CampingPlace from './CampingPlace.vue'
+    import TrainStation from './TrainStation.vue'
     
     export default {
         name: 'PersistentFull',
@@ -66,7 +78,10 @@
             }
         },
         components: {
-            'gismap': Map
+            'gismap': Map,
+            'intersectionmodel': IntersectionModel,
+            'campingplace': CampingPlace,
+            'trainstation': TrainStation,
         },
     }
 </script>

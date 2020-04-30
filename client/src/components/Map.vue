@@ -54,19 +54,22 @@ export default {
     },
     showAdminUnit: function(){
       var that = this;
-        axios
-        .get('http://localhost:3000/camping-per-square-per-adminunit')
-        .then((response) => { 
-          this.adminUnitLayer = L.geoJson(response.data,{
-            onEachFeature: function (feature, layer) {
-                layer.bindPopup(feature.properties.name);
-            },
-            style: function() {
-              return that.adminUnitLayerStyle;
-            }
-          }).addTo(this.map);
-          this.adminUnitLayer.bringToBack();
-        });
+      axios
+      .get('http://localhost:3000/camping-per-square-per-adminunit')
+      .then((response) => { 
+        this.adminUnitLayer = L.geoJson(response.data,{
+          onEachFeature: function (feature, layer) {
+              layer.bindPopup(feature.properties.name);
+              layer.on('click', (e)=>{
+                that.$root.$emit('selected', e.target.feature.properties);
+              });
+          },
+          style: function() {
+            return that.adminUnitLayerStyle;
+          }
+        }).addTo(this.map);
+        this.adminUnitLayer.bringToBack();
+      });
     },
     removeAdminUnit: function(){
         this.adminUnitLayer.remove();
