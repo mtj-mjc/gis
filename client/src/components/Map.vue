@@ -17,7 +17,8 @@ export default {
     return {
       myData: "",
       map: null,
-      info: null,
+      infoBox: null,
+      colorScale: null,
       campingPlaceMarkerLayer: null,
       adminUnitLayer: null,
       highlightLakeLayer: null,
@@ -49,9 +50,11 @@ export default {
           fillOpacity: 0.2
         });
       });
+      this.showColorScale();
     },
     removeColorizationOfAdminUnit: function(){
       this.adminUnitLayer.setStyle(this.adminUnitLayerStyle);
+      this.removeColorScale();
     },
     showAdminUnit: function(){
       var that = this;
@@ -61,14 +64,14 @@ export default {
         this.adminUnitLayer = L.geoJson(response.data,{
           onEachFeature: function (feature, layer) {
             layer.bindPopup(feature.properties.name)
-              layer.on('click', (e)=>{
-                axios
-                  .get('http://localhost:3000/nearestStation?lng='+e.latlng.lng+'&lat='+e.latlng.lat)
-                  .then((response) => { 
-                    that.info.update(response.data.properties);
-                  })
-                that.$root.$emit('selected', e.target.feature.properties);
-              });
+            layer.on('click', (e)=>{
+              axios
+                .get('http://localhost:3000/nearestStation?lng='+e.latlng.lng+'&lat='+e.latlng.lat)
+                .then((response) => { 
+                  that.infoBox.update(response.data.properties);
+                })
+              that.$root.$emit('selected', e.target.feature.properties);
+            });
           },
           style: function() {
             return that.adminUnitLayerStyle;
@@ -141,6 +144,48 @@ export default {
           }).addTo(this.map);
         });
     },
+    showInfoBox: function(){
+      this.infoBox = L.control();
+
+      this.infoBox.onAdd = function () {
+          this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+          this.update();
+          return this._div;
+      };
+
+      // method that we will use to update the control based on feature properties passed
+      this.infoBox.update = function (props) {
+        this._div.innerHTML = '<h4>Nearest Station</h4>' +  (props ?
+          props.name + '<br>' + Math.round(props.meters) + 'm away' 
+          : 'Select Point with a Click');
+      };
+
+      this.infoBox.addTo(this.map);
+    },
+    showColorScale: function(){
+      let that = this;
+      this.colorScale = L.control({position: 'bottomright'});
+
+      this.colorScale.onAdd = function () {
+
+          var div = L.DomUtil.create('div', 'colorScale'),
+              grades = [0, 10, 20, 50, 100, 200, 500, 1000];
+
+          // loop through our density intervals and generate a label with a colored square for each interval
+          for (var i = 0; i < grades.length; i++) {
+              div.innerHTML +=
+                  '<i style="background:' + that.perc2color(grades[i] + 1) + '"></i> ' +
+                  grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+          }
+
+          return div;
+      };
+
+      this.colorScale.addTo(this.map);
+    },
+    removeColorScale: function(){
+      this.colorScale.remove()
+    },
     initMap: function(){
         // Create variable to hold map element, give initial settings to map
         this.map = L.map('map',{ center: [47.05048, 8.30635], zoom: 8});
@@ -148,50 +193,11 @@ export default {
         L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
           attribution: 'Made by Matej Mrnjec © OpenStreetMap'
         }).addTo(this.map);
-        
-        let that = this;
-        
-        this.info = L.control();
-
-        this.info.onAdd = function () {
-            this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
-            this.update();
-            return this._div;
-        };
-
-        // method that we will use to update the control based on feature properties passed
-        this.info.update = function (props) {
-          console.log(props)
-          this._div.innerHTML = '<h4>Nearest Station</h4>' +  (props ?
-        props.name + '<br>' + Math.round(props.meters) + 'm away' 
-        : 'Select Point with a Click');
-        };
-
-        this.info = this.info.addTo(this.map);
-        console.log(this.info)
 
         this.showAdminUnit();
         this.showCampingPlaces();
+        this.showInfoBox();
         // https://leafletjs.com/examples/choropleth/
-        
-        var legend = L.control({position: 'bottomright'});
-
-        legend.onAdd = function () {
-
-            var div = L.DomUtil.create('div', 'info legend'),
-                grades = [0, 10, 20, 50, 100, 200, 500, 1000];
-
-            // loop through our density intervals and generate a label with a colored square for each interval
-            for (var i = 0; i < grades.length; i++) {
-                div.innerHTML +=
-                    '<i style="background:' + that.perc2color(grades[i] + 1) + '"></i> ' +
-                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-            }
-
-            return div;
-        };
-
-        legend.addTo(this.map);
     }    
   }
 }
@@ -206,17 +212,25 @@ export default {
   height: 100%;
  }
 
- .legend {
+.colorScale {
     line-height: 18px;
     color: #555;
+    padding: 6px 8px;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    color: #777;
 }
-.legend i {
+
+.colorScale i {
     width: 18px;
     height: 18px;
     float: left;
     margin-right: 8px;
     opacity: 0.7;
 }
+
 .info {
     padding: 6px 8px;
     font: 14px/16px Arial, Helvetica, sans-serif;
@@ -226,6 +240,7 @@ export default {
     border-radius: 5px;
     color: #777;
 }
+
 .info h4 {
     margin: 0 0 5px;
     color: #777;
