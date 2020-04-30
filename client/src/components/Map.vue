@@ -44,9 +44,10 @@ export default {
   methods: {
     colorizeAdminUnit: function(){
       this.adminUnitLayer.eachLayer((instanceLayer) => {
+        var color = this.perc2color((instanceLayer.feature.properties.nbrOfCampings / instanceLayer.feature.properties.area) * Math.pow(10,9) / 81 * 100);
         instanceLayer.setStyle({
-          color: this.perc2color(instanceLayer.feature.properties.nbrOfCampings / 31 * 100),
-          fillColor: this.perc2color(instanceLayer.feature.properties.nbrOfCampings / 31 * 100),
+          color: color,
+          fillColor: color,
           fillOpacity: 0.2
         });
       });
@@ -106,25 +107,33 @@ export default {
     },
     perc2color: function(perc) {
         var r, g, b = 0;
-          if(perc < 5) {
+          if(perc <= 1) {
+            r = 150;
+            g = 0;
+          }
+          else if(perc <= 3) {
             r = 255;
             g = 0;
           }
-          else if(perc < 25) {
+          else if(perc <= 5) {
             r = 255;
             g = 100;
           }
-          else if(perc < 50) {
+          else if(perc <= 7){
             r = 255;
             g = 200;
           }
-          else if(perc < 75){
-            g = 255;
+          else if(perc <= 9){
             r = 255;
+            g = 255;
+          }
+          else if(perc <= 20){
+            r = 50;
+            g = 255;
           }
           else {
-            g = 255;
             r = 0;
+            g = 100;
           }
           var h = r * 0x10000 + g * 0x100 + b * 0x1;
           return '#' + ('000000' + h.toString(16)).slice(-6);
@@ -169,7 +178,7 @@ export default {
       this.colorScale.onAdd = function () {
 
           var div = L.DomUtil.create('div', 'colorScale'),
-              grades = [0, 10, 20, 50, 100, 200, 500, 1000];
+              grades = [0, 1, 3, 5, 7, 9, 20];
 
           // loop through our density intervals and generate a label with a colored square for each interval
           for (var i = 0; i < grades.length; i++) {

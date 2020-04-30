@@ -14,8 +14,8 @@ var campingPerSquarePerAdminUnit_query = `SELECT json_build_object('type', 'Feat
                                                                     'features', json_agg(json_build_object(
                                                                         'type', 'Feature',
                                                                         'geometry', ST_AsGeoJSON(sub.geom)::json, 
-                                                                        'properties', json_build_object('id', sub.id, 'name', sub.name, 'nbrOfCampings', sub.nbrOfCampings))))
-                                            FROM (SELECT b.id as id, b.name as name, count(cp.geom) as nbrOfCampings, b.geom as geom FROM bezirk_poly as b LEFT JOIN camping_points as cp 
+                                                                        'properties', json_build_object('id', sub.id, 'name', sub.name, 'nbrOfCampings', sub.nbrOfCampings, 'area', sub.area))))
+                                            FROM (SELECT b.id as id, b.name as name, count(cp.geom) as nbrOfCampings, ST_AREA(ST_TRANSFORM(b.geom,3857)) as area, b.geom as geom FROM bezirk_poly as b LEFT JOIN camping_points as cp 
                                             ON st_contains(b.geom,cp.geom) 
                                             GROUP BY b.id, b.geom) as sub;`
 
