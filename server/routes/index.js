@@ -29,7 +29,6 @@ var nbrOfBordersPerLake_query = `SELECT json_build_object('type', 'FeatureCollec
                                     ON st_touches(b.geom, s.geom)
                                     GROUP BY s.id1, s.geom) as sub`;
 
-
 module.exports = router;
 
 /* GET Postgres JSON data */
@@ -67,13 +66,29 @@ router.get('/intersectionModel', function (req, res) {
     var intersectionModel_query = `SELECT ST_Relate(a.geom, b.geom)  FROM 
                                 (SELECT id, geom FROM bezirk_poly WHERE id = ${id1}) as a,
                                 (SELECT id, geom FROM bezirk_poly WHERE id = ${id2}) as b;`;
-    console.log(req.query.id1)
-    console.log(req.query.id2)
     var client = new pg.Client(conString);
     client.connect();
 
     var query = client.query(intersectionModel_query);
     query.then((response) => res.send(response.rows[0]));
+    // query.then((response) => console.log(response.rows));
+});
+
+router.get('/nearestStation', function (req, res) {
+    var lat = req.query.lat;
+    var lng = req.query.lng;
+    var nearestStation_query = `SELECT json_build_object('type', 'Feature', 
+                                                        'geometry', ST_AsGeoJSON(sub.geom)::json,
+                                                        'properties', json_build_object('name', sub.remark, 'meters', distance))
+                            FROM (SELECT  MIN(ST_DISTANCE(ST_Transform(s.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
+                                            s.remark, s.geom FROM sbb_points as s GROUP BY s.remark, s.geom) as sub
+                            ORDER BY sub.distance 
+                            LIMIT 1;`;    
+    var client = new pg.Client(conString);
+    client.connect();
+
+    var query = client.query(nearestStation_query);
+    query.then((response) => res.send(response.rows[0].json_build_object));
     // query.then((response) => console.log(response.rows));
 });
 
