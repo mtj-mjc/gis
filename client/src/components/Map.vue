@@ -64,7 +64,7 @@ export default {
       .then((response) => { 
         this.adminUnitLayer = L.geoJson(response.data,{
           onEachFeature: function (feature, layer) {
-            layer.bindPopup(feature.properties.name)
+            layer.bindPopup('<b>' + feature.properties.name + "</b>");
             layer.on('click', (e)=>{
               axios
                 .get('http://localhost:3000/nearestStation?lng='+e.latlng.lng+'&lat='+e.latlng.lat)
