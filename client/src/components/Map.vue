@@ -59,6 +59,11 @@ export default {
         color: "#e0f542",
         fillColor: "#e0f542",
         fillOpacity: 0.6
+      },
+      selectedAdminUnitLayerStyle: {
+        color: "#e0f542",
+        fillColor: "#e0f542",
+        fillOpacity: 0.6
       }
     };
   },
@@ -93,6 +98,7 @@ export default {
             onEachFeature: function(feature, layer) {
               layer.bindPopup("<b>" + feature.properties.name + "</b>");
               layer.on("click", e => {
+                layer.setStyle(that.selectedAdminUnitLayerStyle);
                 axios
                   .get(
                     "http://localhost:3000/nearestStation?lng=" +
@@ -104,6 +110,10 @@ export default {
                     that.infoBox.update(response.data.properties);
                   });
                 that.$root.$emit("selected", e.target.feature.properties);
+              });
+              that.$root.$on("removeSelection", e => {
+                if (feature.properties.name != e.except.name)
+                  layer.setStyle(that.adminUnitLayerStyle);
               });
             },
             style: function() {
