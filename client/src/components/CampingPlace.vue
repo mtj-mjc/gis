@@ -18,20 +18,23 @@
           <md-card-content>
             <md-field>
               <label for="meterFromWater">Away from Water</label>
-              <md-input name="meterFromWater" id="meterFromWater"/>
+              <md-input name="meterFromWater" id="meterFromWater" v-model="distanceToWater" />
               <span class="md-suffix">meters</span>
               <span class="md-error">Invalid first name</span>
             </md-field>
 
             <md-field>
               <label for="meterFromStation">Away from Train Station</label>
-              <md-input name="meterFromStation" id="meterFromStation"/>
+              <md-input name="meterFromStation" id="meterFromStation" v-model="distanceToStation" />
               <span class="md-suffix">meters</span>
               <span class="md-error">Invalid first name</span>
             </md-field>
-              
+
             <md-card-actions>
-              <md-button class="md-raised md-accent">Find</md-button>
+              <md-button
+                class="md-raised md-accent"
+                @click="$root.$emit('findCampingClicked', {distanceToStation: distanceToStation, distanceToWater: distanceToWater})"
+              >Find</md-button>
             </md-card-actions>
           </md-card-content>
         </md-card-expand-content>
@@ -41,17 +44,18 @@
 </template>
 
 <script>
-  export default {
-    name: 'CampingPlace',
-    data: () => ({
-    }),
-    methods: {
-    }
-  }
+export default {
+  name: "CampingPlace",
+  data: () => ({
+    distanceToWater: "",
+    distanceToStation: ""
+  }),
+  methods: {}
+};
 </script>
 
 <style lang="scss" scoped>
-  .md-card {
-    width: 317px;
-  }
+.md-card {
+  width: 317px;
+}
 </style>

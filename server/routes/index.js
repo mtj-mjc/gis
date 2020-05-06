@@ -83,17 +83,43 @@ router.get('/nearestStation', function (req, res) {
                             FROM (SELECT  MIN(ST_DISTANCE(ST_Transform(s.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
                                             s.remark, s.geom FROM sbb_points as s GROUP BY s.remark, s.geom) as sub
                             ORDER BY sub.distance 
-                            LIMIT 1;`;    
+                            LIMIT 1;`;
     var client = new pg.Client(conString);
     client.connect();
 
     var query = client.query(nearestStation_query);
     query.then((response) => res.send(response.rows[0].json_build_object));
-    // query.then((response) => console.log(response.rows));
+});
+
+router.get('/camping_place', function (req, res) {
+    var distanceToWater = req.query.distanceWater;
+    var distanceToStation = req.query.distanceStation;
+    var nearestStation_query = `SELECT json_build_object('type', 'FeatureCollection', 
+                                                        'features', json_agg(json_build_object(
+                                                            'type', 'Feature',
+                                                            'geometry', ST_AsGeoJSON(sub.geom)::json, 
+                                                            'properties', json_build_object('id', sub.id, 'name', sub.name, 'distanceToLake', sub.distance_to_lake, 'distanceToRiver', sub.distance_to_river, 'distanceToStation', sub.distance_to_train_station))))
+                            FROM (SELECT id, geom, name, distance_to_river, distance_to_lake, distance_to_train_station FROM camping_points_w_distance as cp `;
+
+    if (distanceToWater != '' && distanceToStation != '') {
+        nearestStation_query += `WHERE (distance_to_river <= ${distanceToWater} or distance_to_lake <= ${distanceToWater}) AND distance_to_train_station <= ${distanceToStation}) as sub;`;
+    } else if (distanceToWater != '') {
+        nearestStation_query += `WHERE (distance_to_river <= ${distanceToWater} or distance_to_lake <= ${distanceToWater})) as sub;`;
+    } else if (distanceToStation != '') {
+        nearestStation_query += `WHERE distance_to_train_station <= ${distanceToStation}) as sub;`;
+    } else {
+        nearestStation_query += ') as sub;';
+    }
+
+    var client = new pg.Client(conString);
+    client.connect();
+
+    var query = client.query(nearestStation_query);
+    query.then((response) => res.send(response.rows[0].json_build_object));
 });
 
 /* GET the map page */
-router.get('/map', function(req, res) {
+router.get('/map', function (req, res) {
     var client = new pg.Client(conString);
     client.connect();
     var query = client.query(coffee_query);
@@ -112,7 +138,7 @@ router.get('/map', function(req, res) {
 /* GET the filtered page */
 router.get('/filter', function (req, res) {
     var name = req.query.name;
-    if (name.indexOf("--") > -1 || name.indexOf("'") > -1 || name.indexOf(";") > -1 || name.indexOf("/*") > -1 || name.indexOf("xp_") > -1){
+    if (name.indexOf("--") > -1 || name.indexOf("'") > -1 || name.indexOf(";") > -1 || name.indexOf("/*") > -1 || name.indexOf("xp_") > -1) {
         console.log("Bad request detected");
         res.redirect('/map');
         return;
