@@ -13,7 +13,16 @@ export default {
       this.initMap();
     });
     this.$root.$on("findCampingClicked", e => {
-      this.showCampingPlaces2(e.distanceToWater, e.distanceToStation);
+      this.showCampingPlaces(e.distanceToWater, e.distanceToStation);
+    });
+    this.$root.$on("removeCampingClicked", () => {
+      if (this.campingPlaceMarkerLayer != null) this.removeCampingPlaces();
+    });
+    this.$root.$on("findTrainStationClicked", e => {
+      this.showTrainStations(e.distanceToWater);
+    });
+    this.$root.$on("removeTrainStationClicked", () => {
+      if (this.trainStationMarkerLayer != null) this.removeTrainStations();
     });
   },
   data() {
@@ -25,9 +34,18 @@ export default {
       campingPlaceMarkerLayer: null,
       adminUnitLayer: null,
       highlightLakeLayer: null,
+      trainStationMarkerLayer: null,
       campingPlacesMarkerStyle: {
         radius: 8,
         fillColor: "#ff7800",
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      },
+      trainStationsMarkerStyle: {
+        radius: 8,
+        fillColor: "#fd0000",
         color: "#000",
         weight: 1,
         opacity: 1,
@@ -171,6 +189,27 @@ export default {
     },
     removeCampingPlaces: function() {
       this.campingPlaceMarkerLayer.remove();
+    },
+    showTrainStations: function(distanceToWater) {
+      if (this.trainStationMarkerLayer != null) this.removeTrainStations();
+      var that = this;
+      axios
+        .get(
+          "http://localhost:3000/train_station?distanceWater=" + distanceToWater
+        )
+        .then(response => {
+          this.trainStationMarkerLayer = L.geoJSON(response.data, {
+            pointToLayer: function(feature, latlng) {
+              return L.circleMarker(latlng, that.trainStationsMarkerStyle);
+            },
+            onEachFeature: function(feature, layer) {
+              layer.bindPopup(feature.properties.name);
+            }
+          }).addTo(this.map);
+        });
+    },
+    removeTrainStations: function() {
+      this.trainStationMarkerLayer.remove();
     },
     showInfoBox: function() {
       this.infoBox = L.control();

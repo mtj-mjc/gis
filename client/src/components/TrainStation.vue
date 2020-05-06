@@ -17,15 +17,22 @@
         <md-card-expand-content>
           <md-card-content>
             <md-field>
-                <label for="meterFromWater">Away from Water</label>
-                <md-input name="meterFromWater" id="meterFromWater"/>
-                <span class="md-suffix">meters</span>
-                <span class="md-error">Invalid first name</span>
-              </md-field>
-              
-              <md-card-actions>
-                <md-button class="md-raised md-accent">Find</md-button>
-              </md-card-actions>
+              <label for="meterFromWater">Away from Water</label>
+              <md-input name="meterFromWater" id="meterFromWater" v-model="distanceToWater" />
+              <span class="md-suffix">meters</span>
+              <span class="md-error">Invalid first name</span>
+            </md-field>
+
+            <md-card-actions>
+              <md-button
+                class="md-raised md-primary"
+                @click="$root.$emit('findTrainStationClicked', {distanceToWater, distanceToWater})"
+              >{{distanceToWater == '' ? 'Find All': 'Find'}}</md-button>
+              <md-button
+                class="md-raised md-accent"
+                @click="$root.$emit('removeTrainStationClicked', '')"
+              >Remove</md-button>
+            </md-card-actions>
           </md-card-content>
         </md-card-expand-content>
       </md-card-expand>
@@ -34,17 +41,17 @@
 </template>
 
 <script>
-  export default {
-    name: 'TrainStation',
-    data: () => ({
-    }),
-    methods: {
-    }
-  }
+export default {
+  name: "TrainStation",
+  data: () => ({
+    distanceToWater: ""
+  }),
+  methods: {}
+};
 </script>
 
 <style lang="scss" scoped>
-  .md-card {
-    width: 317px;
-  }
+.md-card {
+  width: 317px;
+}
 </style>

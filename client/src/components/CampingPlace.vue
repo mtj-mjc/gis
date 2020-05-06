@@ -32,9 +32,13 @@
 
             <md-card-actions>
               <md-button
-                class="md-raised md-accent"
+                class="md-raised md-primary"
                 @click="$root.$emit('findCampingClicked', {distanceToStation: distanceToStation, distanceToWater: distanceToWater})"
-              >Find</md-button>
+              >{{distanceToWater == '' && distanceToStation == ''? 'Find All': 'Find'}}</md-button>
+              <md-button
+                class="md-raised md-accent"
+                @click="$root.$emit('removeCampingClicked', '')"
+              >Remove</md-button>
             </md-card-actions>
           </md-card-content>
         </md-card-expand-content>

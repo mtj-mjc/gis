@@ -118,6 +118,28 @@ router.get('/camping_place', function (req, res) {
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
 
+router.get('/train_station', function (req, res) {
+    var distanceToWater = req.query.distanceWater;
+    var nearestStation_query = `SELECT json_build_object('type', 'FeatureCollection', 
+                                                        'features', json_agg(json_build_object(
+                                                            'type', 'Feature',
+                                                            'geometry', ST_AsGeoJSON(sub.geom)::json, 
+                                                            'properties', json_build_object('id', sub.id, 'name', sub.remark, 'distanceToLake', sub.distance_to_lake, 'distanceToRiver', sub.distance_to_river))))
+                            FROM (SELECT id, geom, remark, distance_to_river, distance_to_lake FROM train_station_w_distance `;
+
+    if (distanceToWater != '') {
+        nearestStation_query += `WHERE (distance_to_river <= ${distanceToWater} or distance_to_lake <= ${distanceToWater})) as sub;`;
+    } else {
+        nearestStation_query += ') as sub;';
+    }
+
+    var client = new pg.Client(conString);
+    client.connect();
+
+    var query = client.query(nearestStation_query);
+    query.then((response) => res.send(response.rows[0].json_build_object));
+});
+
 /* GET the map page */
 router.get('/map', function (req, res) {
     var client = new pg.Client(conString);
