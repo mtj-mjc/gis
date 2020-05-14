@@ -5,6 +5,7 @@
 <script>
 import L from "leaflet";
 import axios from "axios";
+import cheerio from "cheerio";
 
 export default {
   name: "Map",
@@ -35,9 +36,18 @@ export default {
       adminUnitLayer: null,
       highlightLakeLayer: null,
       trainStationMarkerLayer: null,
+      measuringStationLayer: null,
       campingPlacesMarkerStyle: {
         radius: 8,
         fillColor: "#ff7800",
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      },
+      measuringStationsMarkerStyle: {
+        radius: 8,
+        fillColor: "#4682B4",
         color: "#000",
         weight: 1,
         opacity: 1,
@@ -56,6 +66,10 @@ export default {
         fillOpacity: 0
       },
       lakeLayerStyle: {
+        color: "#000000",
+        fillOpacity: 0
+      },
+      highlightLakeLayerStyle: {
         color: "#e0f542",
         fillColor: "#e0f542",
         fillOpacity: 0.6
@@ -126,26 +140,110 @@ export default {
     removeAdminUnit: function() {
       this.adminUnitLayer.remove();
     },
-    highlightLakes: function() {
+    showLakes() {
       var that = this;
       axios
         .get("http://localhost:3000/nbr-of-borders-per-lake")
         .then(response => {
           this.highlightLakeLayer = L.geoJson(response.data, {
             onEachFeature: function(feature, layer) {
-              layer.bindPopup(feature.properties.name);
+              layer.on("click", e => {
+                axios
+                  .get(
+                    "http://localhost:3000/nearestMeasuringStation?lng=" +
+                      e.latlng.lng +
+                      "&lat=" +
+                      e.latlng.lat
+                  )
+                  .then(response => {
+                    let $ = cheerio.load(response.data.properties.description);
+                    var link = $("a").attr("href");
+                    axios
+                      .get("https://cors-anywhere.herokuapp.com/" + link)
+                      .then(html => {
+                        $ = cheerio.load(html.data);
+                        var temp = $("tbody")
+                          .find("td:nth-child(4)")
+                          .html();
+                        if (temp == null)
+                          temp = $("tbody")
+                            .find("td:nth-child(3)")
+                            .html();
+                        if (temp == null)
+                          temp = $("tbody")
+                            .find("td:nth-child(2)")
+                            .html();
+                        that.infoBox.showTemp({
+                          meters: response.data.properties.meters,
+                          temp: temp,
+                          link: link,
+                          name: response.data.properties.name
+                        });
+                      });
+                  });
+              });
             },
             style: function() {
               return that.lakeLayerStyle;
-            },
-            filter: function(feature) {
-              return feature.properties.nbrOfBorders > 4;
             }
           }).addTo(this.map);
         });
     },
+    highlightLakes: function() {
+      this.highlightLakeLayer.eachLayer(instanceLayer => {
+        if (instanceLayer.feature.properties.nbrOfBorders > 4) {
+          instanceLayer.setStyle({
+            color: "#e0f542",
+            fillColor: "#e0f542",
+            fillOpacity: 0.6
+          });
+        }
+      });
+    },
     removehighlightLakes: function() {
-      this.highlightLakeLayer.remove();
+      this.highlightLakeLayer.setStyle(this.lakeLayerStyle);
+    },
+    showMeasuringStations: function() {
+      var that = this;
+      axios.get("http://localhost:3000/measuring-station").then(response => {
+        this.measuringStationLayer = L.geoJSON(response.data, {
+          pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, that.measuringStationsMarkerStyle);
+          },
+          onEachFeature: function(feature, layer) {
+            layer.bindPopup(
+              feature.properties.name + "<br>" + feature.properties.description
+            );
+
+            layer.on("click", () => {
+              let $ = cheerio.load(feature.properties.description);
+              var link = $("a").attr("href");
+              axios
+                .get("https://cors-anywhere.herokuapp.com/" + link)
+                .then(html => {
+                  $ = cheerio.load(html.data);
+                  var temp = $("tbody")
+                    .find("td:nth-child(4)")
+                    .html();
+                  if (temp == null)
+                    temp = $("tbody")
+                      .find("td:nth-child(3)")
+                      .html();
+                  if (temp == null)
+                    temp = $("tbody")
+                      .find("td:nth-child(2)")
+                      .html();
+                  that.infoBox.showMeasurment({
+                    temp: temp
+                  });
+                });
+            });
+          }
+        }).addTo(this.map);
+      });
+    },
+    removeMeasuringStations: function() {
+      this.measuringStationLayer.remove();
     },
     perc2color: function(perc) {
       var r,
@@ -226,8 +324,33 @@ export default {
 
       this.infoBox.onAdd = function() {
         this._div = L.DomUtil.create("div", "info"); // create a div with a class "info"
+        this.showMeasurment();
+        this.showTemp();
         this.update();
         return this._div;
+      };
+
+      this.infoBox.showMeasurment = function(props) {
+        this._div.innerHTML =
+          "<h4>Latest Measurement</h4>" +
+          (props ? props.temp + " Celsius" : "Select Point with a Click");
+      };
+
+      this.infoBox.showTemp = function(props) {
+        this._div.innerHTML =
+          "<h4>Nearest Measuring Station</h4>" +
+          (props
+            ? Math.round(props.meters) +
+              "m away" +
+              "<br>" +
+              (props.temp != null
+                ? props.temp + " Celsius"
+                : "<a target='_blank' href=" +
+                  props.link +
+                  ">" +
+                  props.name +
+                  "</a>")
+            : "Select Point with a Click");
       };
 
       // method that we will use to update the control based on feature properties passed
@@ -276,6 +399,7 @@ export default {
       }).addTo(this.map);
 
       this.showAdminUnit();
+      this.showLakes();
       this.showInfoBox();
       // https://leafletjs.com/examples/choropleth/
     }
