@@ -64,8 +64,7 @@ router.get('/nearestStation', function (req, res) {
                                                         'geometry', ST_AsGeoJSON(sub.geom)::json,
                                                         'properties', json_build_object('name', sub.remark, 'meters', distance))
                             FROM (SELECT MIN(ST_DISTANCE(ST_Transform(s.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
-                                            s.remark, s.geom FROM sbb_points as s GROUP BY s.remark, s.geom ORDER BY distance LIMIT 1) as sub
-                            LIMIT 1;`;
+                                            s.remark, s.geom FROM sbb_points as s GROUP BY s.remark, s.geom ORDER BY distance LIMIT 1) as sub`;
     var query = client.query(nearestStation_query);
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
@@ -77,8 +76,7 @@ router.get('/nearestMeasuringStation', function (req, res) {
                                                         'geometry', ST_AsGeoJSON(sub.geom)::json,
                                                         'properties', json_build_object('name', sub.name, 'description', sub.description, 'meters', sub.distance, 'temperature', sub.temperature))
                             FROM (SELECT MIN(ST_DISTANCE(ST_Transform(m.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
-                                m.name, m.geom, m.description, m.temperature FROM messstationen as m GROUP BY m.name, m.geom, m.description, m.temperature ORDER BY distance LIMIT 1) as sub
-                            LIMIT 1;`;
+                                m.name, m.geom, m.description, m.temperature FROM messstationen as m GROUP BY m.name, m.geom, m.description, m.temperature ORDER BY distance LIMIT 1) as sub`;
     var query = client.query(nearestStation_query);
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
