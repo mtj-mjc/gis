@@ -17,7 +17,7 @@ router.get('/measuring-station', function (req, res) {
                                 'features', json_agg(json_build_object(
                                     'type', 'Feature',
                                     'geometry', ST_AsGeoJSON(ST_TRANSFORM(m.geom,4326))::json, 
-                                    'properties', json_build_object('name', m.name, 'description', m.description))))
+                                    'properties', json_build_object('name', m.name, 'description', m.description, 'temperature', m.temperature))))
                             FROM messstationen as m;`);
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
@@ -75,9 +75,9 @@ router.get('/nearestMeasuringStation', function (req, res) {
     var lng = req.query.lng;
     var nearestStation_query = `SELECT json_build_object('type', 'Feature', 
                                                         'geometry', ST_AsGeoJSON(sub.geom)::json,
-                                                        'properties', json_build_object('name', sub.name, 'description', sub.description, 'meters', sub.distance))
+                                                        'properties', json_build_object('name', sub.name, 'description', sub.description, 'meters', sub.distance, 'temperature', sub.temperature))
                             FROM (SELECT MIN(ST_DISTANCE(ST_Transform(m.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
-                                m.name, m.geom, m.description FROM messstationen as m GROUP BY m.name, m.geom, m.description ORDER BY distance LIMIT 1) as sub
+                                m.name, m.geom, m.description, m.temperature FROM messstationen as m GROUP BY m.name, m.geom, m.description, m.temperature ORDER BY distance LIMIT 1) as sub
                             LIMIT 1;`;
     var query = client.query(nearestStation_query);
     query.then((response) => res.send(response.rows[0].json_build_object));

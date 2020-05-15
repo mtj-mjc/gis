@@ -148,28 +148,36 @@ export default {
                 .then(response => {
                   let $ = cheerio.load(response.data.properties.description);
                   var link = $("a").attr("href");
-                  axios
-                    .get("https://cors-anywhere.herokuapp.com/" + link)
-                    .then(html => {
-                      $ = cheerio.load(html.data);
-                      var temp = $("tbody")
-                        .find("td:nth-child(4)")
-                        .html();
-                      if (temp == null)
-                        temp = $("tbody")
-                          .find("td:nth-child(3)")
-                          .html();
-                      if (temp == null)
-                        temp = $("tbody")
-                          .find("td:nth-child(2)")
-                          .html();
-                      that.infoBox.showTemp({
-                        meters: response.data.properties.meters,
-                        temp: temp,
-                        link: link,
-                        name: response.data.properties.name
-                      });
-                    });
+                  // Get Real time data from Government
+                  // axios
+                  //   .get("https://cors-anywhere.herokuapp.com/" + link)
+                  //   .then(html => {
+                  //     $ = cheerio.load(html.data);
+                  //     var temp = $("tbody")
+                  //       .find("td:nth-child(4)")
+                  //       .html();
+                  //     if (temp == null)
+                  //       temp = $("tbody")
+                  //         .find("td:nth-child(3)")
+                  //         .html();
+                  //     if (temp == null)
+                  //       temp = $("tbody")
+                  //         .find("td:nth-child(2)")
+                  //         .html();
+                  //     that.infoBox.showTemp({
+                  //       meters: response.data.properties.meters,
+                  //       temp: temp,
+                  //       link: link,
+                  //       name: response.data.properties.name
+                  //     });
+                  //   });
+                  // Alternativ: Read old Data from Database
+                  that.infoBox.showTemp({
+                    meters: response.data.properties.meters,
+                    temp: response.data.properties.temperature,
+                    link: link,
+                    name: response.data.properties.name
+                  });
                 });
             });
           },
@@ -206,27 +214,32 @@ export default {
             );
 
             layer.on("click", () => {
-              let $ = cheerio.load(feature.properties.description);
-              var link = $("a").attr("href");
-              axios
-                .get("https://cors-anywhere.herokuapp.com/" + link)
-                .then(html => {
-                  $ = cheerio.load(html.data);
-                  var temp = $("tbody")
-                    .find("td:nth-child(4)")
-                    .html();
-                  if (temp == null)
-                    temp = $("tbody")
-                      .find("td:nth-child(3)")
-                      .html();
-                  if (temp == null)
-                    temp = $("tbody")
-                      .find("td:nth-child(2)")
-                      .html();
-                  that.infoBox.showMeasurment({
-                    temp: temp
-                  });
-                });
+              // Get Real time data from Government
+              // let $ = cheerio.load(feature.properties.description);
+              // var link = $("a").attr("href");
+              // axios
+              //   .get("https://cors-anywhere.herokuapp.com/" + link)
+              //   .then(html => {
+              //     $ = cheerio.load(html.data);
+              //     var temp = $("tbody")
+              //       .find("td:nth-child(4)")
+              //       .html();
+              //     if (temp == null)
+              //       temp = $("tbody")
+              //         .find("td:nth-child(3)")
+              //         .html();
+              //     if (temp == null)
+              //       temp = $("tbody")
+              //         .find("td:nth-child(2)")
+              //         .html();
+              //     that.infoBox.showMeasurment({
+              //       temp: temp
+              //     });
+              //   });
+              // Alternativ: Read old Data from Database
+              that.infoBox.showMeasurment({
+                temp: feature.properties.temperature
+              });
             });
           }
         }).addTo(this.map);
