@@ -1,24 +1,22 @@
 <template>
   <div id="app">
-    <sidebar/>
+    <sidebar />
   </div>
 </template>
 
 <script>
-import SideBar from './components/SideBar.vue'
+import SideBar from "./components/SideBar.vue";
 
 export default {
-  name: 'App',
-  data () {
-    return {
-    }
+  name: "App",
+  data() {
+    return {};
   },
   components: {
-    'sidebar': SideBar
+    sidebar: SideBar
   },
-  methods: {
-  }
-}
+  methods: {}
+};
 </script>
 
 <style>
@@ -29,12 +27,4 @@ export default {
   text-align: center;
   color: #2c3e50;
 }
-
-/* #map { 
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
- } */
 </style>

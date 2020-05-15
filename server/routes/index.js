@@ -3,31 +3,10 @@ var router = express.Router(); // setup usage of the Express router engine
 
 /* PostgreSQL and PostGIS module and connection setup */
 var pg = require("pg"); // require Postgres module
-
-// Set up your database query to display GeoJSON
 var conString = "postgres://postgres:peder@192.168.99.101:5432/gis"; // Your Database Connection
+
 var client = new pg.Client(conString);
 client.connect();
-
-// Some Big Queries
-var campingPerSquarePerAdminUnit_query = `SELECT json_build_object('type', 'FeatureCollection', 
-                                                                    'features', json_agg(json_build_object(
-                                                                        'type', 'Feature',
-                                                                        'geometry', ST_AsGeoJSON(sub.geom)::json, 
-                                                                        'properties', json_build_object('id', sub.id, 'name', sub.name, 'nbrOfCampings', sub.nbrOfCampings, 'area', sub.area))))
-                                            FROM (SELECT b.id as id, b.name as name, count(cp.geom) as nbrOfCampings, ST_AREA(ST_TRANSFORM(b.geom,3857)) as area, b.geom as geom FROM bezirk_poly as b LEFT JOIN camping_points as cp 
-                                            ON st_contains(b.geom,cp.geom) 
-                                            GROUP BY b.id, b.geom) as sub;`
-
-var nbrOfBordersPerLake_query = `SELECT json_build_object('type', 'FeatureCollection', 
-                                                        'features', json_agg(json_build_object(
-                                                            'type', 'Feature', 
-                                                            'geometry', ST_AsGeoJSON(sub.geom)::json,
-                                                            'properties', json_build_object('name', sub.name, 'nbrOfBorders', sub.nbrOfBorders)))) 
-                                FROM (SELECT s.id1 as name, count(b.name) as nbrOfBorders, s.geom as geom 
-                                    FROM bezirk_poly as b INNER JOIN seen_poly as s
-                                    ON st_touches(b.geom, s.geom)
-                                    GROUP BY s.id1, s.geom) as sub`;
 
 module.exports = router;
 
@@ -43,13 +22,28 @@ router.get('/measuring-station', function (req, res) {
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
 
-router.get('/camping-per-square-per-adminunit', function (req, res) {
-    var query = client.query(campingPerSquarePerAdminUnit_query);
+router.get('/admin-unit', function (req, res) {
+    var query = client.query(`SELECT json_build_object('type', 'FeatureCollection', 
+                                    'features', json_agg(json_build_object(
+                                        'type', 'Feature',
+                                        'geometry', ST_AsGeoJSON(sub.geom)::json, 
+                                        'properties', json_build_object('id', sub.id, 'name', sub.name, 'nbrOfCampings', sub.nbrOfCampings, 'area', sub.area))))
+                                FROM (SELECT b.id as id, b.name as name, count(cp.geom) as nbrOfCampings, ST_AREA(ST_TRANSFORM(b.geom,3857)) as area, b.geom as geom FROM bezirk_poly as b LEFT JOIN camping_points as cp 
+                                ON st_contains(b.geom,cp.geom) 
+                                GROUP BY b.id, b.geom) as sub;`);
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
 
-router.get('/nbr-of-borders-per-lake', function (req, res) {
-    var query = client.query(nbrOfBordersPerLake_query);
+router.get('/lake', function (req, res) {
+    var query = client.query(`SELECT json_build_object('type', 'FeatureCollection', 
+                                    'features', json_agg(json_build_object(
+                                        'type', 'Feature', 
+                                        'geometry', ST_AsGeoJSON(sub.geom)::json,
+                                        'properties', json_build_object('name', sub.name, 'nbrOfBorders', sub.nbrOfBorders)))) 
+                                FROM (SELECT s.id1 as name, count(b.name) as nbrOfBorders, s.geom as geom 
+                                FROM bezirk_poly as b INNER JOIN seen_poly as s
+                                ON st_touches(b.geom, s.geom)
+                                GROUP BY s.id1, s.geom) as sub`);
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
 
@@ -69,7 +63,7 @@ router.get('/nearestStation', function (req, res) {
     var nearestStation_query = `SELECT json_build_object('type', 'Feature', 
                                                         'geometry', ST_AsGeoJSON(sub.geom)::json,
                                                         'properties', json_build_object('name', sub.remark, 'meters', distance))
-                            FROM (SELECT  MIN(ST_DISTANCE(ST_Transform(s.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
+                            FROM (SELECT MIN(ST_DISTANCE(ST_Transform(s.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
                                             s.remark, s.geom FROM sbb_points as s GROUP BY s.remark, s.geom ORDER BY distance LIMIT 1) as sub
                             ORDER BY sub.distance 
                             LIMIT 1;`;
@@ -83,7 +77,7 @@ router.get('/nearestMeasuringStation', function (req, res) {
     var nearestStation_query = `SELECT json_build_object('type', 'Feature', 
                                                         'geometry', ST_AsGeoJSON(sub.geom)::json,
                                                         'properties', json_build_object('name', sub.name, 'description', sub.description, 'meters', sub.distance))
-                            FROM (SELECT  MIN(ST_DISTANCE(ST_Transform(m.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
+                            FROM (SELECT MIN(ST_DISTANCE(ST_Transform(m.geom, 3857 ), ST_Transform(ST_GeomFromText('SRID=4326;POINT(${lng} ${lat})'), 3857 ))) as distance, 
                                 m.name, m.geom, m.description FROM messstationen as m GROUP BY m.name, m.geom, m.description ORDER BY distance LIMIT 1) as sub
                             ORDER BY sub.distance 
                             LIMIT 1;`;
@@ -133,22 +127,3 @@ router.get('/train_station', function (req, res) {
     var query = client.query(nearestStation_query);
     query.then((response) => res.send(response.rows[0].json_build_object));
 });
-
-/* GET the map page */
-router.get('/map', function (req, res) {
-    var query = client.query(coffee_query);
-    query.on("row", function (row, result) {
-        result.addRow(row);
-    });
-    query.on("end", function (result) {
-        var data = result.rows[0].row_to_json
-        res.render('map', {
-            title: "Express API",
-            jsonData: data
-        });
-    });
-});
-
-
-
-

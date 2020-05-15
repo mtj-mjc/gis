@@ -111,7 +111,6 @@ export default {
 
 <style lang="scss" scoped>
 .md-app {
-  // min-height: 350px;
   height: 100vh;
   border: 1px solid rgba(#000, 0.12);
 }

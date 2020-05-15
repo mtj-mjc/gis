@@ -28,7 +28,6 @@ export default {
   },
   data() {
     return {
-      myData: "",
       map: null,
       infoBox: null,
       colorScale: null,
@@ -69,11 +68,6 @@ export default {
         color: "#000000",
         fillOpacity: 0
       },
-      highlightLakeLayerStyle: {
-        color: "#e0f542",
-        fillColor: "#e0f542",
-        fillOpacity: 0.6
-      },
       selectedAdminUnitLayerStyle: {
         color: "#e0f542",
         fillColor: "#e0f542",
@@ -105,89 +99,85 @@ export default {
     },
     showAdminUnit: function() {
       var that = this;
-      axios
-        .get("http://localhost:3000/camping-per-square-per-adminunit")
-        .then(response => {
-          this.adminUnitLayer = L.geoJson(response.data, {
-            onEachFeature: function(feature, layer) {
-              layer.bindPopup("<b>" + feature.properties.name + "</b>");
-              layer.on("click", e => {
-                layer.setStyle(that.selectedAdminUnitLayerStyle);
-                axios
-                  .get(
-                    "http://localhost:3000/nearestStation?lng=" +
-                      e.latlng.lng +
-                      "&lat=" +
-                      e.latlng.lat
-                  )
-                  .then(response => {
-                    that.infoBox.update(response.data.properties);
-                  });
-                that.$root.$emit("selected", e.target.feature.properties);
-              });
-              that.$root.$on("removeSelection", e => {
-                if (feature.properties.name != e.except.name)
-                  layer.setStyle(that.adminUnitLayerStyle);
-              });
-            },
-            style: function() {
-              return that.adminUnitLayerStyle;
-            }
-          }).addTo(this.map);
-          this.adminUnitLayer.bringToBack();
-        });
+      axios.get("http://localhost:3000/admin-unit").then(response => {
+        this.adminUnitLayer = L.geoJson(response.data, {
+          onEachFeature: function(feature, layer) {
+            layer.bindPopup("<b>" + feature.properties.name + "</b>");
+            layer.on("click", e => {
+              layer.setStyle(that.selectedAdminUnitLayerStyle);
+              axios
+                .get(
+                  "http://localhost:3000/nearestStation?lng=" +
+                    e.latlng.lng +
+                    "&lat=" +
+                    e.latlng.lat
+                )
+                .then(response => {
+                  that.infoBox.update(response.data.properties);
+                });
+              that.$root.$emit("selected", e.target.feature.properties);
+            });
+            that.$root.$on("removeSelection", e => {
+              if (feature.properties.name != e.except.name)
+                layer.setStyle(that.adminUnitLayerStyle);
+            });
+          },
+          style: function() {
+            return that.adminUnitLayerStyle;
+          }
+        }).addTo(this.map);
+        this.adminUnitLayer.bringToBack();
+      });
     },
     removeAdminUnit: function() {
       this.adminUnitLayer.remove();
     },
     showLakes() {
       var that = this;
-      axios
-        .get("http://localhost:3000/nbr-of-borders-per-lake")
-        .then(response => {
-          this.highlightLakeLayer = L.geoJson(response.data, {
-            onEachFeature: function(feature, layer) {
-              layer.on("click", e => {
-                axios
-                  .get(
-                    "http://localhost:3000/nearestMeasuringStation?lng=" +
-                      e.latlng.lng +
-                      "&lat=" +
-                      e.latlng.lat
-                  )
-                  .then(response => {
-                    let $ = cheerio.load(response.data.properties.description);
-                    var link = $("a").attr("href");
-                    axios
-                      .get("https://cors-anywhere.herokuapp.com/" + link)
-                      .then(html => {
-                        $ = cheerio.load(html.data);
-                        var temp = $("tbody")
-                          .find("td:nth-child(4)")
+      axios.get("http://localhost:3000/lake").then(response => {
+        this.highlightLakeLayer = L.geoJson(response.data, {
+          onEachFeature: function(feature, layer) {
+            layer.on("click", e => {
+              axios
+                .get(
+                  "http://localhost:3000/nearestMeasuringStation?lng=" +
+                    e.latlng.lng +
+                    "&lat=" +
+                    e.latlng.lat
+                )
+                .then(response => {
+                  let $ = cheerio.load(response.data.properties.description);
+                  var link = $("a").attr("href");
+                  axios
+                    .get("https://cors-anywhere.herokuapp.com/" + link)
+                    .then(html => {
+                      $ = cheerio.load(html.data);
+                      var temp = $("tbody")
+                        .find("td:nth-child(4)")
+                        .html();
+                      if (temp == null)
+                        temp = $("tbody")
+                          .find("td:nth-child(3)")
                           .html();
-                        if (temp == null)
-                          temp = $("tbody")
-                            .find("td:nth-child(3)")
-                            .html();
-                        if (temp == null)
-                          temp = $("tbody")
-                            .find("td:nth-child(2)")
-                            .html();
-                        that.infoBox.showTemp({
-                          meters: response.data.properties.meters,
-                          temp: temp,
-                          link: link,
-                          name: response.data.properties.name
-                        });
+                      if (temp == null)
+                        temp = $("tbody")
+                          .find("td:nth-child(2)")
+                          .html();
+                      that.infoBox.showTemp({
+                        meters: response.data.properties.meters,
+                        temp: temp,
+                        link: link,
+                        name: response.data.properties.name
                       });
-                  });
-              });
-            },
-            style: function() {
-              return that.lakeLayerStyle;
-            }
-          }).addTo(this.map);
-        });
+                    });
+                });
+            });
+          },
+          style: function() {
+            return that.lakeLayerStyle;
+          }
+        }).addTo(this.map);
+      });
     },
     highlightLakes: function() {
       this.highlightLakeLayer.eachLayer(instanceLayer => {
@@ -365,6 +355,7 @@ export default {
       this.infoBox.addTo(this.map);
     },
     showColorScale: function() {
+      // Inspired by https://leafletjs.com/examples/choropleth/
       let that = this;
       this.colorScale = L.control({ position: "bottomright" });
 
@@ -401,7 +392,6 @@ export default {
       this.showAdminUnit();
       this.showLakes();
       this.showInfoBox();
-      // https://leafletjs.com/examples/choropleth/
     }
   }
 };
